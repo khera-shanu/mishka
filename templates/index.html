@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery</title>
+    <style>
+        .image-container {
+            display: grid;
+            grid-template-columns: 50% 50%;
+        }
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            transition: transform .5s ease;
+        }
+        @media (max-width: 600px) {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        .details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+        .details div{
+            margin-bottom: 15px;
+        }
+        .details label {
+            font-size: x-large;
+            cursor: pointer;
+            text-transform: capitalize;
+        }
+        .checkbox-container {
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .btn-done {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-done:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .path {
+            display: inline-block;
+            background-color: #eee;
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+        .red {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="image-container">
+            <div>
+                <input type="hidden" id="image-hash" name="hash" value="" />
+                <img id="display-image" src="" alt="Image Loading...">
+            </div>
+            <div class="details">
+                <div>
+                    Date
+                    <input id="image-date" type="date" value="" />
+                </div>
+                <div>
+                    City
+                    <select id="image-city">
+                    </select>
+
+                    <input type="text" id="image-city-override" value="" placeholder="Or something else"/>
+                </div>
+                {% for key, value in categories.items() %}
+                <div>
+                    <span class="checkbox-container">
+                        <input type="checkbox" id="{{ key }}" name="{{ key }}" value="{{ key }}" />
+                        <label for="{{ key }}">{{ value }}</label>
+                    </span>
+                </div>
+                {% endfor %}
+                <div>
+                    <button class="btn-done" disabled>DONE</button>
+                </div>
+                <div>
+                    <h3>Note</h3>
+                    <p>Image Input Path: <span class="path" id="image-input-path"></span></p>
+                    <p>Image Output Path: <span class="path" id="image-output-path"></span></p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+
+        function reverseDate(date) {
+            return date.split('-').reverse().join('-')
+        }
+
+        function getCategoryValue() {
+            const selectedCategories = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(checkbox => checkbox.value);
+            const selectedCategory = selectedCategories.length > 0 ? selectedCategories[0] : '<span class="red">uncategorized</span>';
+            return selectedCategory;
+        }
+
+        function updateOutputPath() {
+            const outputDir = "{{output_image_folder}}";
+            const hash = document.getElementById('image-hash').value;
+            const date = reverseDate(document.getElementById('image-date').value);
+            let city = document.getElementById('image-city').value;
+            const cityOverride = document.getElementById('image-city-override').value;
+
+            if (cityOverride && cityOverride.trim().length > 0){
+                city = cityOverride;
+            }
+
+            const inputPath = document.getElementById('image-input-path').innerText;
+            let inputPathParts = inputPath.split('.');
+            const ext = inputPathParts[inputPathParts.length - 1];
+
+            const selectedCategory = getCategoryValue();
+            const outputPath = `${outputDir}/India/${selectedCategory}/${city}/${date}/${hash.slice(0,6)}.${ext}`;
+
+            document.getElementById('image-output-path').innerHTML = outputPath;
+
+            // if selectedCategory is not uncategorized, enable the DONE button & vice versa
+            document.querySelector('.btn-done').disabled = selectedCategory.includes('uncategorized');
+
+        }
+
+        document.getElementById('image-date').addEventListener('change', updateOutputPath);
+        document.getElementById('image-city').addEventListener('change', updateOutputPath);
+        document.getElementById('image-city-override').addEventListener('input', updateOutputPath);
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', updateOutputPath));
+
+        function fetchNewImageAndUpdateUI() {
+            fetch('/image')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('image-hash').value = data.image_hash; 
+                    document.getElementById('display-image').src = `data:image/jpeg;base64,${data.base64}`;
+                    document.getElementById('image-date').value = reverseDate(data.date);
+                    document.getElementById('image-input-path').innerText = data.image_input_path;
+                    const citySelect = document.getElementById('image-city');
+
+                    // Remove previous options
+                    citySelect.innerHTML = '';
+
+                    // Dynamically add city options from the API response
+                    const cityOption_1 = document.createElement('option');
+                    cityOption_1.value = data.city;
+                    cityOption_1.text = data.city;
+                    citySelect.appendChild(cityOption_1);
+
+                    const cityOption_2 = document.createElement('option');
+                    cityOption_2.value = data.state;
+                    cityOption_2.text = data.state;
+                    citySelect.appendChild(cityOption_2);
+
+                    // Set the selected city if provided (assuming 'data.city' is the field for currently selected city in your API response)
+                    if (data.city) {
+                        citySelect.value = data.city;
+                    }
+                })
+                .catch(error => console.error('Error fetching image:', error)
+            );
+        }
+        document.addEventListener("DOMContentLoaded", fetchNewImageAndUpdateUI);
+
+        function finalizeImageAndFetchNew() {
+            const imageHash = document.getElementById('image-hash').value;
+            const categoryValue = getCategoryValue();
+            const imagePath = document.getElementById('image-output-path').innerText;
+            const cityOverride = document.getElementById('image-city-override').value;
+            const dataToSend = {
+                image_hash: imageHash,
+                category_id: categoryValue,
+                image_output_path: imagePath,
+                city_override: cityOverride ? cityOverride : null
+            };
+
+            fetch('/finalize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dataToSend),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Image finalized successfully.');
+                    // Fetch new image and update UI
+                    fetchNewImageAndUpdateUI();
+                } else {
+                    console.error('Failed to finalize the image.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        document.querySelector('.btn-done').addEventListener('click', finalizeImageAndFetchNew);
+    </script>
+</body>
+</html>
