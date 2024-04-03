@@ -10,7 +10,7 @@ import requests
 from PIL import Image
 
 import db
-from config import input_image_folder, output_image_folder
+from config import input_image_folder, output_image_folder, AI_URL
 from consts import states_and_uts
 
 
@@ -147,39 +147,60 @@ def image_base64_to_text(image_base64, should_crop=False, crop_percent=30):
     return " ".join(recognized_text)
 
 
-def get_image_text(image_hash):
+# def get_image_text(image_hash):
 
-    image = db.get_image(image_hash)
-    image_base64 = get_image_base64(image["image_input_path"])
+#     image = db.get_image(image_hash)
+#     image_base64 = get_image_base64(image["image_input_path"])
 
-    text = image_base64_to_text(image_base64, should_crop=False, crop_percent=18)
-    llm_text_original = extract_text_info(text.replace("GPS Map Camera", "").strip())
-    llm_text = {}
-    for key, value in llm_text_original.items():
-        llm_text[key.lower().strip()] = value.strip() if isinstance(value, str) else value
+#     text = image_base64_to_text(image_base64, should_crop=False, crop_percent=18)
+#     llm_text_original = extract_text_info(text.replace("GPS Map Camera", "").strip())
+#     llm_text = {}
+#     for key, value in llm_text_original.items():
+#         llm_text[key.lower().strip()] = value.strip() if isinstance(value, str) else value
 
-    city = llm_text.get("city", "UNKNOWN")
-    state = llm_text.get("state", "UNKNOWN")
-    date = llm_text.get("date", "UNKNOWN")
+#     city = llm_text.get("city", "UNKNOWN")
+#     state = llm_text.get("state", "UNKNOWN")
+#     date = llm_text.get("date", "UNKNOWN")
 
-    if city == "UNKNOWN":
-        raise ValueError(f"City not found in the text: {llm_text}")
-    if date == "UNKNOWN":
-        raise ValueError(f"Date not found in the text: {llm_text}")
+#     if city == "UNKNOWN":
+#         raise ValueError(f"City not found in the text: {llm_text}")
+#     if date == "UNKNOWN":
+#         raise ValueError(f"Date not found in the text: {llm_text}")
 
-    date_parts = date.split("-")
-    if len(date_parts) != 3:
-        date_parts = date.split("/")
+#     date_parts = date.split("-")
+#     if len(date_parts) != 3:
+#         date_parts = date.split("/")
 
-    if len(date_parts[2]) != 4 and len(date_parts[2]) == 2:
-        date_parts[2] = f"20{date_parts[2]}"
-    date = "-".join(date_parts)
+#     if len(date_parts[2]) != 4 and len(date_parts[2]) == 2:
+#         date_parts[2] = f"20{date_parts[2]}"
+#     date = "-".join(date_parts)
 
-    return text, llm_text, {
-        "city": city,
-        "state": state,
-        "date": date,
-    }
+#     return text, llm_text, {
+#         "city": city,
+#         "state": state,
+#         "date": date,
+#     }
+
+
+def get_image_text(hash_batch):
+    texts = []
+    for image_hash in hash_batch:
+        image = db.get_image(image_hash)
+        image_base64 = get_image_base64(image["image_input_path"])
+
+        text = image_base64_to_text(image_base64, should_crop=False, crop_percent=18)
+        texts.append({
+            "hash": image_hash,
+            "text": text,
+        })
+
+    print("Making AI request...")
+
+    response = requests.post(
+        AI_URL,
+        json=texts,
+    )
+    return json.loads(response.json())
 
 
 def get_all_images():

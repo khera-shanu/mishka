@@ -34,7 +34,7 @@
             cursor: pointer;
             text-transform: capitalize;
         }
-        .checkbox-container {
+        .radio-container {
             display: inline-block;
             margin-right: 10px;
         }
@@ -82,8 +82,8 @@
                 </div>
                 {% for key, value in categories.items() %}
                 <div>
-                    <span class="checkbox-container">
-                        <input type="checkbox" id="{{ key }}" name="{{ key }}" value="{{ key }}" />
+                    <span class="radio-container">
+                        <input type="radio" id="category" name="category" value="{{ key }}" />
                         <label for="{{ key }}">{{ value }}</label>
                     </span>
                 </div>
@@ -106,7 +106,7 @@
         }
 
         function getCategoryValue() {
-            const selectedCategories = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(checkbox => checkbox.value);
+            const selectedCategories = Array.from(document.querySelectorAll('input[type="radio"]:checked')).map(radio => radio.value);
             const selectedCategory = selectedCategories.length > 0 ? selectedCategories[0] : '<span class="red">uncategorized</span>';
             return selectedCategory;
         }
@@ -139,7 +139,7 @@
         document.getElementById('image-date').addEventListener('change', updateOutputPath);
         document.getElementById('image-city').addEventListener('change', updateOutputPath);
         document.getElementById('image-city-override').addEventListener('input', updateOutputPath);
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', updateOutputPath));
+        document.querySelectorAll('input[type="radio"]').forEach(radio => radio.addEventListener('change', updateOutputPath));
 
         function fetchNewImageAndUpdateUI() {
             fetch('/image')
