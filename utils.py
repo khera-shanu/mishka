@@ -26,7 +26,7 @@ def get_image_hash8(image_path):
 
 def get_image_base64(image_path):
     with open(image_path, "rb") as file:
-        image_base64 = base64.b64encode(file.read()).decode('utf-8')
+        image_base64 = base64.b64encode(file.read()).decode("utf-8")
         return image_base64
 
 
@@ -40,7 +40,9 @@ def retry(n):
                     print(f"Error: {e} \n\nRetrying...")
                     print(traceback.format_exc())
             return None
+
         return wrapper
+
     return decorator
 
 
@@ -118,27 +120,25 @@ def get_bottom_x_percent(base64_image, x):
     image = Image.open(BytesIO(image_data))
     width, height = image.size
 
-    bottom_height = int(height * (x/100.0))
-    crop_box = (0.2*width, height - bottom_height, width, height-20)
+    bottom_height = int(height * (x / 100.0))
+    crop_box = (0.2 * width, height - bottom_height, width, height - 20)
     cropped_image = image.crop(crop_box)
 
     buffered = BytesIO()
     cropped_image.save(buffered, format=image.format)
-    img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     return img_base64
 
 
 def image_base64_to_text(image_base64, should_crop=False, crop_percent=30):
     if should_crop:
-        image_data = base64.b64decode(
-            get_bottom_x_percent(image_base64, crop_percent)
-        )
+        image_data = base64.b64decode(get_bottom_x_percent(image_base64, crop_percent))
     else:
         image_data = base64.b64decode(image_base64)
     image = Image.open(BytesIO(image_data))
 
-    reader = easyocr.Reader(['en', 'hi'])
+    reader = easyocr.Reader(["en", "hi"])
     recognized_text = []
 
     for tensor_tuple in reader.readtext(image):
@@ -189,10 +189,12 @@ def get_image_text(hash_batch):
         image_base64 = get_image_base64(image["image_input_path"])
 
         text = image_base64_to_text(image_base64, should_crop=False, crop_percent=18)
-        texts.append({
-            "hash": image_hash,
-            "text": text,
-        })
+        texts.append(
+            {
+                "hash": image_hash,
+                "text": text,
+            }
+        )
 
     print("Making AI request...")
 
@@ -200,7 +202,7 @@ def get_image_text(hash_batch):
         AI_URL,
         json=texts,
     )
-    return json.loads(response.json())
+    return json.loads(response.json())["response"]
 
 
 def get_all_images():

@@ -11,12 +11,16 @@ from utils import get_image_base64
 app = Flask(__name__)
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html', categories=db.get_category_map(), output_image_folder=output_image_folder)
+    return render_template(
+        "index.html",
+        categories=db.get_category_map(),
+        output_image_folder=output_image_folder,
+    )
 
 
-@app.route('/image')
+@app.route("/image")
 def get_image():
     image = db.get_all_images_with_status("IN_PROGRESS", one=True)
     return {
@@ -29,7 +33,7 @@ def get_image():
     }
 
 
-@app.route('/finalize', methods=['POST'])
+@app.route("/finalize", methods=["POST"])
 def finalize_image():
     """
     create all neccesary folders if needed for image_output_path
@@ -44,7 +48,9 @@ def finalize_image():
     image_output_path = request.json["image_output_path"]
     city_override = request.json.get("city_override")
 
-    db.finalize_image(image_hash, category_id, image_output_path, city_override=city_override)
+    db.finalize_image(
+        image_hash, category_id, image_output_path, city_override=city_override
+    )
 
     image_input_path = db.get_image(image_hash)["image_input_path"]
     image_output_folder = os.path.dirname(image_output_path)
