@@ -7,4 +7,4 @@ db_path = os.path.join(os.path.dirname(__file__), "files.db")
 
 GRID_SIZE = 3
 
-AI_URL = "PLEASE PASTE HERE THE URL OF THE AI SERVER"
+AI_URL = "http://ubuntu@ec2-54-82-8-87.compute-1.amazonaws.com:9191/mohit-ai"

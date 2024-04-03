@@ -138,7 +138,7 @@ def image_base64_to_text(image_base64, should_crop=False, crop_percent=30):
         image_data = base64.b64decode(image_base64)
     image = Image.open(BytesIO(image_data))
 
-    reader = easyocr.Reader(["en", "hi"])
+    reader = easyocr.Reader(["en", "hi"], gpu=False)
     recognized_text = []
 
     for tensor_tuple in reader.readtext(image):
